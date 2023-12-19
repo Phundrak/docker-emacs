@@ -1,22 +1,25 @@
 inputs:
-  dockerhub_username:
+  registry_username:
     required: true
-  dockerhub_token:
+  registry_token:
+    required: true
+  registry:
     required: true
   emacs:
     required: true
-    
+
 runs:
   using: composite
   steps:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Login to DockerHub
-      uses: docker/login-action@v2
+    - name: Login to Docker registry
+      uses: docker/login-action@v3.0.0
       with:
-        username: ${{ inputs.dockerhub_username }}
-        password: ${{ inputs.dockerhub_token }}
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.registry_username }}
+        password: ${{ inputs.registry_token }}
 
     - name: Set up Docker Buildx
       id: buildx
@@ -27,20 +30,18 @@ runs:
       run: |
         yq() { docker run --rm -i -v "${PWD}":/workdir mikefarah/yq "$@"; }
         VERSION="${{ inputs.emacs }}"
-        tags=$(yq ".[] | select(.tags[0] == \"$VERSION\") | .tags | join (\", silex/emacs:\")" images.yml)
+        tags=$(yq ".[] | select(.tags[0] == \"$VERSION\") | .tags | join (\", phundrak/emacs:\")" images.yml)
         version=$(yq ".[] | select(.tags[0] == \"$VERSION\") | .version" images.yml)
         cache=$(yq ".[] | select(.tags[0] == \"$VERSION\") | .tags[0]" images.yml)
         template=$(yq ".[] | select(.tags[0] == \"$VERSION\") | .template" images.yml)
-        echo "image_tags=silex/emacs:$tags" >> $GITHUB_ENV
-        echo "image_cache=silex/emacs:$cache" >> $GITHUB_ENV
-        echo "image_context=$version/$template" >> $GITHUB_ENV
+        echo "image_tags=phundrak/emacs:$tags" >> $GITEA_ENV
+        echo "image_cache=phundrak/emacs:$cache" >> $GITEA_ENV
+        echo "image_context=$version/$template" >> $GITEA_ENV
 
-    - name: Build
+    - name: Build and push Docker image
       uses: docker/build-push-action@v3
       with:
         pull: true
-        push: ${{ github.ref == 'refs/heads/master' }}
-        cache-from: ${{ env.image_cache }}
-        cache-to: '"type=inline"'
+        push: ${{ gitea.ref == 'refs/heads/master' }}
         tags: ${{ env.image_tags }}
         context: ${{ env.image_context }}

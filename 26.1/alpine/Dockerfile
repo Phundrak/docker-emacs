@@ -13,7 +13,9 @@ RUN apk add --no-cache \
             curl \
             gnupg \
             openssh-client \
-            wget
+            wget \
+            npm \
+            nodejs
 
 COPY --from=0 /nix-emacs/nix/store /nix/store
 ENV PATH="/nix/store/emacs/bin:$PATH"

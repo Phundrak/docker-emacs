@@ -15,6 +15,7 @@ RUN apt-get update && \
             gnupg \
             openssh-client \
             wget \
+            nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /nix-emacs/nix/store /nix/store
